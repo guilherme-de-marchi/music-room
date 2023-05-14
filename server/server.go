@@ -10,11 +10,12 @@ import (
 )
 
 var (
-	ErrNameInUse       = errors.New("username already in use")
-	ErrEmptyInput      = errors.New("empty input received")
-	ErrNoArguments     = errors.New("no arguments received")
-	ErrCommandNotFound = errors.New("command not found")
-	ErrFileNotFound    = errors.New("file not found")
+	ErrNameInUse        = errors.New("username already in use")
+	ErrEmptyInput       = errors.New("empty input received")
+	ErrInvalidArguments = errors.New("invalid arguments received")
+	ErrNoArguments      = errors.New("no arguments received")
+	ErrCommandNotFound  = errors.New("command not found")
+	ErrFileNotFound     = errors.New("file not found")
 )
 
 type clientError struct {
@@ -37,6 +38,7 @@ type server struct {
 	network,
 	address,
 	secret string
+	player   player
 	commands map[string]command
 	clients  map[string]net.Conn
 	admins   []string
@@ -53,6 +55,8 @@ func NewServer(network, address, secret string, bufSize int) *server {
 		commands: loadCommands(
 			register,
 			broadcast,
+			list,
+			playerCommand,
 		),
 		clients: make(map[string]net.Conn),
 		bufSize: bufSize,
@@ -182,4 +186,21 @@ func (s *server) isAdmin(name string) bool {
 func (s *server) isRegistered(name string) bool {
 	_, ok := s.clients[name]
 	return ok
+}
+
+func (s *server) addMusic(name, path string) {
+	s.mu.Lock()
+	s.player.playlist = append(s.player.playlist, music{
+		name: name,
+		path: path,
+	})
+	s.mu.Unlock()
+}
+
+func getKeys[T comparable, U any](m map[T]U) []T {
+	l := make([]T, len(m))
+	for k := range m {
+		l = append(l, k)
+	}
+	return l
 }
